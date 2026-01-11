@@ -24,3 +24,11 @@ export const EMPTY_STATE: CognitiveState = {
     actions_à_faire: [],
     questions_ouvertes: []
 };
+
+export interface SavedSession {
+    id: string;
+    title: string;
+    state: CognitiveState;
+    createdAt: string;
+    updatedAt: string;
+}
