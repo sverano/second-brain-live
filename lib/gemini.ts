@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { CognitiveState } from "./types";
+import {GoogleGenerativeAI} from "@google/generative-ai";
+import {CognitiveState} from "./types";
 
 export const SYSTEM_PROMPT = `Vous êtes Second Brain Live, un copilote cognitif en temps réel.
 
@@ -54,15 +54,15 @@ Format de sortie :
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function updateCognitiveState(
-  currentState: CognitiveState,
-  newSegment: string
+    currentState: CognitiveState,
+    newSegment: string
 ): Promise<CognitiveState> {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
-    systemInstruction: SYSTEM_PROMPT
-  });
+    const model = genAI.getGenerativeModel({
+        model: "gemini-3-flash-preview",
+        systemInstruction: SYSTEM_PROMPT
+    });
 
-  const prompt = `État cognitif actuel :
+    const prompt = `État cognitif actuel :
 ${JSON.stringify(currentState, null, 2)}
 
 Nouveau segment d'entrée :
@@ -70,21 +70,21 @@ Nouveau segment d'entrée :
 
 Mettez à jour l'état cognitif en tenant compte de ce nouveau segment.`;
 
-  const result = await model.generateContent(prompt);
-  const response = result.response.text();
+    const result = await model.generateContent(prompt);
+    const response = result.response.text();
 
-  // Nettoyer la réponse (enlever les backticks markdown si présents)
-  const cleanResponse = response
-    .replace(/```json\n?/g, '')
-    .replace(/```\n?/g, '')
-    .trim();
+    // Nettoyer la réponse (enlever les backticks markdown si présents)
+    const cleanResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
 
-  try {
-    const updatedState = JSON.parse(cleanResponse);
-    return updatedState;
-  } catch (error) {
-    console.error("JSON parsing error:", error);
-    console.error("Response:", cleanResponse);
-    throw new Error("Invalid JSON response from Gemini");
-  }
+    try {
+        const updatedState = JSON.parse(cleanResponse);
+        return updatedState;
+    } catch (error) {
+        console.error("JSON parsing error:", error);
+        console.error("Response:", cleanResponse);
+        throw new Error("Invalid JSON response from Gemini");
+    }
 }
