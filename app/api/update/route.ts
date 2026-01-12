@@ -1,14 +1,21 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {updateCognitiveState} from '@/lib/gemini';
-import {getSession, updateSession} from '@/lib/state';
-import {UpdateRequest, UpdateResponse} from '@/lib/types';
+import {getSession, updateSession, createSession} from '@/lib/state';
+import {UpdateResponse, CognitiveState, EMPTY_STATE} from '@/lib/types';
+
+interface UpdateRequestBody {
+    sessionId: string;
+    segment: string;
+    currentState?: CognitiveState;
+    locale?: 'en' | 'fr';
+}
 
 export async function POST(request: NextRequest) {
     const startTime = Date.now();
 
     try {
-        const body: UpdateRequest = await request.json();
-        const { sessionId, segment } = body;
+        const body: UpdateRequestBody = await request.json();
+        const { sessionId, segment, currentState: clientState, locale = 'en' } = body;
 
         if (!sessionId || !segment) {
             return NextResponse.json(
@@ -17,16 +24,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const currentState = getSession(sessionId);
+        let currentState = getSession(sessionId);
 
+        // Session doesn't exist in backend - create it with client state or empty
         if (!currentState) {
-            return NextResponse.json(
-                { success: false, error: "Session not found" },
-                { status: 404 }
-            );
+            if (clientState) {
+                updateSession(sessionId, clientState);
+                currentState = clientState;
+            } else {
+                currentState = createSession(sessionId);
+            }
         }
 
-        const updatedState = await updateCognitiveState(currentState, segment);
+        const updatedState = await updateCognitiveState(currentState, segment, locale);
         updateSession(sessionId, updatedState);
 
         const processingTime = Date.now() - startTime;

@@ -1,7 +1,7 @@
 import {GoogleGenerativeAI} from "@google/generative-ai";
 import {CognitiveState} from "./types";
 
-export const SYSTEM_PROMPT = `Vous êtes Second Brain Live, un copilote cognitif en temps réel.
+const SYSTEM_PROMPT_FR = `Vous êtes Second Brain Live, un copilote cognitif en temps réel.
 
 Votre rôle est de réfléchir aux côtés d'un humain pendant qu'il travaille.
 
@@ -39,6 +39,7 @@ L'état cognitif doit inclure :
 
 Règles :
 
+- Répondre en français.
 - Ne pas répéter les informations déjà présentes, sauf si elles sont précisées.
 - Ne pas inventer de faits, de noms ou d'échéances.
 - Ne pas fournir d'explications ni de commentaires.
@@ -51,18 +52,80 @@ Format de sortie :
 - Ne pas inclure de texte supplémentaire.
 - La sortie doit remplacer intégralement l'état cognitif précédent.`;
 
+const SYSTEM_PROMPT_EN = `You are Second Brain Live, a real-time cognitive copilot.
+
+Your role is to think alongside a human while they work.
+
+You are not a chatbot and only answer questions if explicitly asked.
+
+Your main function is to maintain a structured cognitive representation
+of the user's ongoing thoughts, conversations, and decisions.
+
+You process a continuous stream of inputs (speech, text, or multimodal signals).
+
+Each input represents a new portion of the current session.
+
+You will always receive:
+
+1. The current cognitive state (JSON)
+2. A new input portion (transcription or extracted content)
+
+Your task is to update the existing cognitive state, not recreate it.
+
+Cognitive principles:
+
+- Preserve past context unless explicitly revised or contradicted.
+- Favor clarity and structure over verbosity.
+- Only infer implicit decisions or actions with high confidence.
+- Treat uncertainty as an open question rather than an assumption.
+- Detect and resolve contradictions when possible.
+
+The cognitive state must include:
+
+- résumé: a concise, evolving overview of the session.
+- idées_clés: important concepts or themes.
+- décisions: explicit or implicit decisions made.
+- actions_à_faire: tasks with owners and deadlines, if applicable.
+- questions_ouvertes: unresolved issues or uncertainties.
+
+Rules:
+
+- Respond in English.
+- Do not repeat information already present unless clarified.
+- Do not invent facts, names, or deadlines.
+- Do not provide explanations or comments.
+- Do not use natural language outside the structured state.
+
+Output format:
+
+- Return ONLY a valid JSON object.
+- Do not include Markdown.
+- Do not include additional text.
+- The output must completely replace the previous cognitive state.`;
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function updateCognitiveState(
     currentState: CognitiveState,
-    newSegment: string
+    newSegment: string,
+    locale: 'en' | 'fr' = 'en'
 ): Promise<CognitiveState> {
+    const systemPrompt = locale === 'en' ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_FR;
+
     const model = genAI.getGenerativeModel({
-        model: "gemini-3-flash-preview",
-        systemInstruction: SYSTEM_PROMPT
+        model: "gemini-2.0-flash",
+        systemInstruction: systemPrompt
     });
 
-    const prompt = `État cognitif actuel :
+    const prompt = locale === 'en'
+        ? `Current cognitive state:
+${JSON.stringify(currentState, null, 2)}
+
+New input segment:
+"${newSegment}"
+
+Update the cognitive state considering this new segment.`
+        : `État cognitif actuel :
 ${JSON.stringify(currentState, null, 2)}
 
 Nouveau segment d'entrée :
@@ -73,7 +136,6 @@ Mettez à jour l'état cognitif en tenant compte de ce nouveau segment.`;
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 
-    // Nettoyer la réponse (enlever les backticks markdown si présents)
     const cleanResponse = response
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')

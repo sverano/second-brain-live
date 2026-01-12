@@ -17,7 +17,7 @@ import {
 import {EMPTY_STATE} from '@/lib/types';
 
 export default function SessionPage() {
-    const { t } = useLanguage();
+    const { t, locale } = useLanguage();
     const { sessionId, state, setSessionId, setState } = useSession();
     const [isProcessing, setIsProcessing] = useState(false);
     const initializedRef = useRef(false);
@@ -90,7 +90,7 @@ export default function SessionPage() {
             const response = await fetch('/api/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId, segment })
+                body: JSON.stringify({ sessionId, segment, currentState: state, locale })
             });
 
             const data = await response.json();

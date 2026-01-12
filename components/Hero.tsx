@@ -29,13 +29,17 @@ export default function Hero({ onStart }: HeroProps) {
                     <span className="text-sm text-purple-200">{t.hero.badge}</span>
                 </div>
 
-                <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight">
+                <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold text-white mb-4 leading-tight">
                     {t.hero.title1}
                     <br />
                     <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
             {t.hero.title2}
           </span>
                 </h1>
+
+                <p className="text-2xl sm:text-3xl font-semibold text-white/90 mb-6 italic">
+                    Think freely. We'll remember everything.
+                </p>
 
                 <p className="text-xl sm:text-2xl text-purple-100 mb-12 max-w-3xl mx-auto leading-relaxed">
                     {t.hero.subtitle}
