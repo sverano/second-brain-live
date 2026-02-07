@@ -48,8 +48,8 @@ A cognitive copilot that thinks alongside you, automatically extracting:
 │   │   Gemini    │     │ StateDisplay│◀────│  │          │          │    │   │
 │   │    Live     │     │             │     │  │          ▼          │    │   │
 │   └─────────────┘     └─────────────┘     │  │  ┌───────────────┐  │    │   │
-│                                           │  │  │   GEMINI 3    │  │    │   │
-│                                           │  │  │    FLASH      │  │    │   │
+│                                           │  │  │    GEMINI     │  │    │   │
+│                                           │  │  │  2.0 FLASH    │  │    │   │
 │                                           │  │  │               │  │    │   │
 │                                           │  │  │ System Prompt │  │    │   │
 │                                           │  │  │ + State JSON  │  │    │   │
@@ -74,7 +74,7 @@ A cognitive copilot that thinks alongside you, automatically extracting:
 ### Data Flow
 
 ```
-User Input ──▶ Frontend ──▶ /api/update ──▶ Gemini 3 Flash ──▶ Updated State ──▶ UI
+User Input ──▶ Frontend ──▶ /api/update ──▶ Gemini 2.0 Flash ──▶ Updated State ──▶ UI
     │                                              │
     │                                              ▼
     │                                     ┌─────────────────┐
@@ -103,9 +103,9 @@ User Input ──▶ Frontend ──▶ /api/update ──▶ Gemini 3 Flash ─
 
 ## How We Use Gemini
 
-### Gemini 3 Flash - Cognitive Processing
+### Gemini 2.0 Flash - Cognitive Processing
 
-We use **Gemini 3 Flash** (`gemini-2.0-flash`) for real-time cognitive state updates:
+We use **Gemini 2.0 Flash** (`gemini-2.0-flash`) for real-time cognitive state updates:
 
 ```typescript
 // lib/gemini.ts
@@ -120,7 +120,7 @@ const model = genAI.getGenerativeModel({
 // Returns: Updated cognitive state (JSON)
 ```
 
-**Why Gemini 3 Flash?**
+**Why Gemini 2.0 Flash?**
 - **Low latency** (<2s response) - essential for real-time feel
 - **Structured output** - reliable JSON formatting
 - **Contextual reasoning** - maintains coherence across updates
@@ -159,7 +159,7 @@ const client = genAI.liveConnect({
 | **Framework** | Next.js 16 (App Router) |
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS 4 |
-| **AI - Text** | Gemini 3 Flash |
+| **AI - Text** | Gemini 2.0 Flash |
 | **AI - Voice** | Gemini 2.5 Live |
 | **State** | React Context + localStorage |
 | **Icons** | Lucide React |
