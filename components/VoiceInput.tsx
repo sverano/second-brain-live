@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Mic, MicOff, Download, Trash2, Copy, Check, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, MicOff, Download, Trash2, Copy, Check, Clock, ChevronDown, ChevronUp, MessageSquare, Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { createBlob, decode, decodeAudioData } from "@/utils/audioUtils";
@@ -28,7 +28,7 @@ interface VoiceInputProps {
 const STORAGE_KEY = 'voice-transcription-sessions';
 
 export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputProps) {
-    const { t } = useLanguage();
+    const { t, locale } = useLanguage();
     const [isActive, setIsActive] = useState(false);
     const [transcription, setTranscription] = useState<TranscriptionTurn[]>([]);
     const [copied, setCopied] = useState(false);
@@ -36,6 +36,7 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
     const [sessions, setSessions] = useState<TranscriptionSession[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<string>('');
     const [showHistory, setShowHistory] = useState(false);
+    const [transcriptionOnly, setTranscriptionOnly] = useState(true); // Mode transcription par défaut
 
     // Refs pour gérer le lifecycle
     const processorRef = useRef<ScriptProcessorNode | null>(null);
@@ -138,6 +139,13 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
         }, 100);
     }, [onTranscript]);
 
+    const transcriptionOnlyRef = useRef(transcriptionOnly);
+
+    // Synchroniser la ref avec le state
+    useEffect(() => {
+        transcriptionOnlyRef.current = transcriptionOnly;
+    }, [transcriptionOnly]);
+
     const startSession = async () => {
         try {
             const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
@@ -148,6 +156,17 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
 
             currentInputRef.current = '';
             currentOutputRef.current = '';
+
+            // Configuration selon le mode
+            const isTranscriptionMode = transcriptionOnlyRef.current;
+
+            const systemInstruction = isTranscriptionMode
+                ? (locale === 'fr'
+                    ? 'Tu es un transcripteur silencieux. Tu écoutes et transcris ce qui est dit. Ne réponds JAMAIS vocalement. Ne fais aucun commentaire. Reste complètement silencieux.'
+                    : 'You are a silent transcriber. You listen and transcribe what is said. NEVER respond vocally. Make no comments. Stay completely silent.')
+                : (locale === 'fr'
+                    ? 'Vous êtes un assistant cognitif. Soyez bref et structuré.'
+                    : 'You are a cognitive assistant. Be brief and structured.');
 
             const session = await ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-12-2025',
@@ -209,21 +228,24 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
                                 onTranscript(currentInputRef.current);
                                 currentInputRef.current = '';
                             }
-                            if (currentOutputRef.current) {
+                            // En mode transcription, ignorer les réponses de l'assistant
+                            if (currentOutputRef.current && !transcriptionOnlyRef.current) {
                                 newTurns.push({
                                     role: 'assistant',
                                     text: currentOutputRef.current,
                                     timestamp: Date.now()
                                 });
-                                currentOutputRef.current = '';
                             }
+                            currentOutputRef.current = '';
+
                             if (newTurns.length > 0) {
                                 setTranscription(prev => [...prev, ...newTurns]);
                             }
                         }
 
+                        // Ne jouer l'audio que si on n'est PAS en mode transcription
                         const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                        if (base64Audio && audioContextOutRef.current) {
+                        if (base64Audio && audioContextOutRef.current && !transcriptionOnlyRef.current) {
                             const ctx = audioContextOutRef.current;
                             nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
                             const buffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
@@ -252,7 +274,7 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
                     },
                     inputAudioTranscription: {},
                     outputAudioTranscription: {},
-                    systemInstruction: 'Vous êtes un assistant cognitif. Soyez bref et structuré.'
+                    systemInstruction: systemInstruction
                 }
             });
 
@@ -379,6 +401,54 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
 
     return (
         <div className="space-y-6">
+            {/* Toggle Mode Transcription / Conversation */}
+            <div className="flex justify-center">
+                <div className="inline-flex items-center bg-gray-100 rounded-full p-1">
+                    <button
+                        onClick={() => setTranscriptionOnly(true)}
+                        disabled={isActive}
+                        className={`
+                            flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all
+                            ${transcriptionOnly
+                                ? 'bg-white text-indigo-700 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
+                            }
+                            ${isActive ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                    >
+                        <VolumeX className="w-4 h-4" />
+                        {locale === 'fr' ? 'Transcription' : 'Transcription'}
+                    </button>
+                    <button
+                        onClick={() => setTranscriptionOnly(false)}
+                        disabled={isActive}
+                        className={`
+                            flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all
+                            ${!transcriptionOnly
+                                ? 'bg-white text-indigo-700 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
+                            }
+                            ${isActive ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        {locale === 'fr' ? 'Conversation' : 'Conversation'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Description du mode */}
+            <p className="text-center text-xs text-gray-500">
+                {transcriptionOnly
+                    ? (locale === 'fr'
+                        ? "L'IA écoute silencieusement et transcrit (idéal pour réunions)"
+                        : "AI listens silently and transcribes (ideal for meetings)")
+                    : (locale === 'fr'
+                        ? "L'IA répond vocalement à vos questions"
+                        : "AI responds vocally to your questions")
+                }
+            </p>
+
             {/* Bouton principal avec visualisation audio */}
             <div className="relative flex flex-col items-center">
                 <div className="relative">
